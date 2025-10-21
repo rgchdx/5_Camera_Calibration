@@ -64,3 +64,8 @@ def detect_charuco(gray, aruco_dict, board):
     if ch_ids is None or len(ch_ids) < 6:
         return False, None, None
     return True, ch_corners, ch_ids
+
+def objpoints_checkerboard(rows, cols, square):
+    objp = np.zeros((rows * cols, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:cols, 0:rows].T.reshape(-1, 2) * square
+    return objp # (N, 3) array

@@ -40,3 +40,4 @@ if found:
     cv2.imshow("Detected ChArUco Corners", img_vis)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
