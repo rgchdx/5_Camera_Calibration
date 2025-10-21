@@ -53,9 +53,12 @@ def make_charuco_board(rows, cols, square, marker_len, dict_name):
 
 def detect_charuco(gray, aruco_dict, board):
     params = cv2.aruco.DetectorParameters()
+    print("params:", params)
     detector = cv2.aruco.ArucoDetector(aruco_dict, params)
+    print("detector:", detector)
     corners, ids, _ = detector.detectMarkers(gray)
-    if ids is None or len(ids == 0):
+    print("corners:", corners, "ids:", ids)
+    if ids is None or len(ids) == 0:
         return False, None, None
     _, ch_corners, ch_ids = cv2.aruco.interpolateCornersCharuco(corners, ids, gray, board)
     if ch_ids is None or len(ch_ids) < 6:
