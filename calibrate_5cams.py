@@ -43,3 +43,10 @@ def detect_checkerboard(gray, rows, cols):
         criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     )
     return True, corners
+
+def make_charuco_board(rows, cols, square, marker_len, dict_name):
+    # rows, cols are number of squares (not inner corners)
+    d = getattr(cv2.aruco, dict_name)
+    aruco_dict = cv2.aruco.getPredefinedDictionary(d)
+    board = cv2.aruco.CharucoBoard((cols, rows), square, marker_len, aruco_dict)
+    return aruco_dict, board
