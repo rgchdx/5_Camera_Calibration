@@ -2,7 +2,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import cv2
 import numpy as np
-from calibrate_5cams import detect_checkerboard, make_charuco_board, detect_charuco
+from calibrate_5cams import detect_checkerboard, make_charuco_board, detect_charuco, objpoints_checkerboard
 
 # --- Test 1: Checkerboard detection ---
 img = cv2.imread("checkerboard.png") 
@@ -41,3 +41,7 @@ if found:
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+# --- Test 4: Object points generation for checkerboard ---
+objp = objpoints_checkerboard(rows=9, cols=6, square=0.025)
+print("Object points for checkerboard:\n", objp)
+print("Number of object points:", objp.shape[0])
