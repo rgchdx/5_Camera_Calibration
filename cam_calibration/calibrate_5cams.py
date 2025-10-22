@@ -173,3 +173,78 @@ def invert_T(T):
     Ti[:3, :3] = R.T
     Ti[:3, 3:4] = -R.T @ t
     return Ti
+
+def extrinsics_from_shared_board(data_root, cams, pattern, rows, cols, square, calibs: Dict[str, cameraCalib], 
+                                 charuco_marker = None, dict_name = "DICT_4X4_50"):
+    """
+    For frames where multiple cameras see the board at (roughly) the same time,
+    we estimate each cam's pose wrt the board, then compute relative transforms.
+    cam_i -> cam0 by T_i0 = t_i_board * inv(T_0_board)
+    """
+    from collections import defaultdict
+    def se3_log(T):
+        # simple log map using cv2.Rodrigues inverse
+        R = T[:3, :3]
+        t = T[:3, 3:4]  # potential issue here so check later
+        rvec, _ = cv2.Rodrigues(R)
+        return np.concatenate([rvec.flatten(), t])
+    
+    def se3_exp(xi):
+        rvec = xi[:3].reshape(3, 1)
+        t = xi[3:].reshape(3, 1)
+        R, _ = cv2.Rodrigues(rvec)
+        T = np.eye(4)
+        T[:3, :3] = R
+        T[:3, 3:4] = t
+        return T
+    # build per-frame estimates by matching file indices across cams
+    # assumes images named like img_0001.jpg across all cams
+    frame_to_Tc_board = defaultdict(dict) 
+    # collect sorted basenames per cam
+    cam_files = {}
+    for c in cams:
+        files = sorted(glob.glob(os.path.join(data_root, c, "*.jpg")) + 
+                       glob.glob(os.path.join(data_root, c, "*.png")))
+        cam_files[c] = files
+    # Match by index min length
+    min_len = min(len(v) for v in cam_files.values())
+    for idx in range(min_len):
+        for c in cams:
+            p = cam_files[c][idx]
+            img = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
+            if img is None:
+                continue
+            K = calibs[c].K
+            dist = calibs[c].dist
+            found, rvec, tvec = estimate_board_pose(img, pattern, rows, cols, square, K, dist,
+                                                    charuco_marker=charuco_marker, dict_name=dict_name)
+            if not found:
+                continue
+            T_c_board = rvec_tvec_to_rt(rvec, tvec)
+            frame_to_Tc_board[idx][c] = T_c_board
+            # Compute relative transforms to cam0 per frame, then aggregate
+            ref = cams[0]
+            rel_lists = {c: [] for c in cams if c != ref}
+            for idx, d in frame_to_Tc_board.items():
+                if ref not in d:
+                    continue
+                T_ref_board = d[ref]
+                T_board_ref = invert_T(T_ref_board)
+                for c, T_c_board in d.items():
+                    if c == ref:
+                        continue
+                    T_c_ref = T_c_board @ T_board_ref
+                    rel_lists[c].append(T_c_ref)
+            # robust average via log/exp
+            extrinsics = {}
+            for c in cams:
+                if c == ref:
+                    extrinsics[c] = np.eye(4)
+                    continue
+                Ts = rel_lists[c]
+                if len(Ts) == 0:
+                    raise RuntimeError(f"No shared board views found between {ref} and {c}.")
+                xis = np.stack([se3_log(T) for T in Ts], axis=0)
+                median_xi = np.median(xis, axis=0)
+                extrinsics[c] = se3_exp(median_xi)
+    return ref, extrinsics
