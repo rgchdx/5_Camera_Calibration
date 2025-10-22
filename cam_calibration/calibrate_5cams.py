@@ -248,3 +248,28 @@ def extrinsics_from_shared_board(data_root, cams, pattern, rows, cols, square, c
                 median_xi = np.median(xis, axis=0)
                 extrinsics[c] = se3_exp(median_xi)
     return ref, extrinsics
+
+def save_yaml_json(out_path, cams, calibs: Dict[str, cameraCalib], ref_cam: str, extrinsics: Dict[str, np.ndarray]):
+    data = {
+        "reference_camera": ref_cam,
+        "cameras": {}
+    }
+    for c in cams:
+        cc = calibs[c]
+        entry = {
+            "model": cc.model,
+            "resolution": {"width": int(cc.res[0]), "height": int(cc.res[1])},
+            "K": cc.K.tolist(),
+            "dist": cc.dist.flatten().tolist(),
+            "T_cam_ref": extrinsics[c].tolist() if c != ref_cam else np.eye(4).tolist()
+        }
+        data["cameras"][c] = entry
+    ext = os.path.splitext(out_path)[1].lower()
+    if ext in [".yaml", ".yml"]:
+        with open(out_path, "w") as f:
+            yaml.safe_dump(data, f, sort_keys = False)
+    else: 
+        with open(out_path, "w") as f:
+            json.dump(data, f, indent = 2)
+    
+    # define main here later after all testing is done.
