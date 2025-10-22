@@ -140,3 +140,36 @@ def intrinsic_calibration(image_paths: List[str], pattern: str, rows: int, cols:
             raise ValueError("Fisheye model not supported for ChArUco calibration in this implementation.")
     return rms, cameraCalib(K=K, dist=dist, res=im_size, model=model)   # potential error here
 
+def estimate_board_pose(gray, pattern, rows, cols, square, K, dist, charuco_marker=None, dict_name = "DICT_4X4_50"):
+    if pattern == "checkerboard":
+        found, corners = detect_checkerboard(gray, rows, cols)
+        if not found:
+            return False, None, None
+        objp = objpoints_checkerboard(rows, cols, square)
+        ret, rvec, tvec = cv2.solvePnP(objp, corners, K, dist)
+        return True, rvec, tvec
+    else:
+        aruco_dict, board = make_charuco_board(rows, cols, square, charuco_marker, dict_name)
+        found, ch_corners, ch_ids = detect_charuco(gray, aruco_dict, board)
+        if not found:
+            return False, None, None
+        ret, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(ch_corners, ch+ids, board, K, dist, None, None)
+        if not ret:
+            return False, None, None
+        return True, rvec, tvec
+
+def rvec_tvec_to_rt(rvec, tvec):
+    R, _ = cv2.Rodrigues(rvec)
+    t = tvec.reshape(3, 1)
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3:4] = t
+    return T
+
+def invert_T(T):
+    R = T[:3, :3]
+    t = T[:3, 3:4]
+    Ti = np.eye(4)
+    Ti[:3, :3] = R.T
+    Ti[:3, 3:4] = -R.T @ t
+    return Ti

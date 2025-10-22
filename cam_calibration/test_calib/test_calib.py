@@ -22,11 +22,11 @@ aruco_dict, board = make_charuco_board(rows=5, cols=7, square=0.04, marker_len=0
 print("ChArUco board created successfully!")
 board_size = (700, 500)
 img_board = cv2.aruco.drawPlanarBoard(board, board_size, marginSize=10, borderBits=1)
-#cv2.imshow("ChArUco Board", img_board)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
-#cv2.imwrite("charuco_board_generated.png", img_board)
-#print("ChArUco board image saved as charuco_board_generated.png")
+cv2.imshow("ChArUco Board", img_board)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+cv2.imwrite("charuco_board_generated.png", img_board)
+print("ChArUco board image saved as charuco_board_generated.png")
 
 # --- Test 3: Charuco detection ---
 img = cv2.imread("charuco_board_generated.png")
