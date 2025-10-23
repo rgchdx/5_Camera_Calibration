@@ -128,13 +128,13 @@ def intrinsic_calibration(image_paths: List[str], pattern: str, rows: int, cols:
     else:  # charuco
         # ChArUco intrinsics (pinhole only, fisheye not supported directly by aruco extension)
         # Aggregate from locals
-        rms, K, dist, rvecs, tvecs, _, _ = cv2.aruco.calibrateCameraCharuco(
-            charucoCorners = all_corners,
-            charucoIds = all_ids,
-            board = board,
-            imageSize = im_size,
-            cameraMatrix = None,
-            distCoeffs = None
+        rms, K, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
+        charucoCorners = all_corners,
+        charucoIds = all_ids,
+        board = board,
+        imageSize = im_size,
+        cameraMatrix = None,
+        distCoeffs = None
         )
         if model == "fisheye":
             raise ValueError("Fisheye model not supported for ChArUco calibration in this implementation.")

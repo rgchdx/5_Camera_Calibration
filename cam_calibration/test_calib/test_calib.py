@@ -2,7 +2,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import cv2
 import numpy as np
-from calibrate_5cams import detect_checkerboard, make_charuco_board, detect_charuco, objpoints_checkerboard
+from calibrate_5cams import detect_checkerboard, make_charuco_board, detect_charuco, objpoints_checkerboard, intrinsic_calibration
 
 # --- Test 1: Checkerboard detection ---
 img = cv2.imread("checkerboard.png") 
@@ -45,3 +45,15 @@ if found:
 objp = objpoints_checkerboard(rows=9, cols=6, square=0.025)
 print("Object points for checkerboard:\n", objp)
 print("Number of object points:", objp.shape[0])
+
+rms, calib = intrinsic_calibration(
+    image_paths=["charuco_board_generated.png"],
+    pattern="charuco",
+    rows=5, cols=7,
+    square=0.04,
+    charuco_marker=0.02,
+    model="pinhole"
+)
+print("RMS error:", rms)
+print("Camera matrix:\n", calib.K)
+print("Distortion coefficients:\n", calib.dist)
