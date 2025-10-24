@@ -2,7 +2,8 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import cv2
 import numpy as np
-from calibrate_5cams import detect_checkerboard, make_charuco_board, detect_charuco, objpoints_checkerboard, intrinsic_calibration, estimate_board_pose
+import shutil
+from calibrate_5cams import detect_checkerboard, make_charuco_board, detect_charuco, objpoints_checkerboard, intrinsic_calibration, estimate_board_pose, extrinsics_from_shared_board
 
 # --- Test 1: Checkerboard detection ---
 img = cv2.imread("checkerboard.png") 
@@ -28,9 +29,8 @@ cv2.destroyAllWindows()
 cv2.imwrite("charuco_board_generated.png", img_board)
 print("ChArUco board image saved as charuco_board_generated.png")
 
-# Test 3: Detect ChArUco corners on real image
-# ----------------------------------------------
-IMG_PATH = "IMG_4041.png"
+# --- Test 3: Detect ChArUco corners on real image ---
+IMG_PATH = "IMG_4043.png"
 
 aruco_dict, board = make_charuco_board(
     rows=5, cols=7,
@@ -60,9 +60,7 @@ else:
     print("[WARN] No ChArUco corners detected. Check lighting, focus, or board visibility.")
     exit()
 
-# ----------------------------------------------
-# Test 4: Intrinsic calibration (single or multiple ChArUCo images)
-# ----------------------------------------------
+# --- Test 4: Intrinsic calibration (single or multiple ChArUCo images) ---
 print("\n[INFO] Running intrinsic calibration...")
 rms, calib = intrinsic_calibration(
     image_paths=[IMG_PATH],  # ideally multiple images for accuracy
@@ -77,9 +75,7 @@ print(f"[RESULT] RMS error: {rms:.6f}")
 print("Camera matrix K:\n", calib.K)
 print("Distortion coefficients:\n", calib.dist.ravel())
 
-# ----------------------------------------------
-# Test 5: Pose estimation and visualization
-# ----------------------------------------------
+# --- Test 5: Pose estimation and visualization --- 
 print("\n[INFO] Estimating ChArUco board pose...")
 found, rvec, tvec = estimate_board_pose(
     gray=gray,
@@ -110,3 +106,5 @@ if found:
     cv2.destroyAllWindows()
 else:
     print("[WARN] Could not estimate pose — ensure enough corners were detected.")
+
+# --- Test 6: Getting extrinsics for multiple cameras ---
