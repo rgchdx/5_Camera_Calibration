@@ -28,67 +28,85 @@ cv2.destroyAllWindows()
 cv2.imwrite("charuco_board_generated.png", img_board)
 print("ChArUco board image saved as charuco_board_generated.png")
 
-# --- Test 3: Charuco detection ---
-img = cv2.imread("charuco_board_generated.png")
-print("Image loaded:", img is not None)
+# Test 3: Detect ChArUco corners on real image
+# ----------------------------------------------
+IMG_PATH = "IMG_4041.png"
+
+aruco_dict, board = make_charuco_board(
+    rows=5, cols=7,
+    square=0.04,         # 4 cm square size
+    marker_len=0.02,     # 2 cm marker size
+    dict_name="DICT_4X4_50"
+)
+print("[INFO] ChArUco board object created.")
+
+img = cv2.imread(IMG_PATH)
+if img is None:
+    raise FileNotFoundError(f"Could not read {IMG_PATH}")
+
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 found, ch_corners, ch_ids = detect_charuco(gray, aruco_dict, board)
-print("ChArUco detected:", found)
+print(f"[INFO] ChArUco detected: {found}")
+
 if found:
     img_vis = img.copy()
     cv2.aruco.drawDetectedCornersCharuco(img_vis, ch_corners, ch_ids, (0, 255, 0))
-    cv2.imshow("Detected ChArUco Corners", img_vis)
+    print(f"[INFO] Detected {len(ch_ids)} ChArUco corners.")
+    disp = cv2.resize(img_vis, (1280, int(img_vis.shape[0] * 1280 / img_vis.shape[1])))
+    cv2.imshow("Detected ChArUco Corners", disp)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+else:
+    print("[WARN] No ChArUco corners detected. Check lighting, focus, or board visibility.")
+    exit()
 
-# --- Test 4: Object points generation for checkerboard ---
-objp = objpoints_checkerboard(rows=9, cols=6, square=0.025)
-print("Object points for checkerboard:\n", objp)
-print("Number of object points:", objp.shape[0])
-
-# --- Test 5: Intrinsic calibration using ChArUco images ---
+# ----------------------------------------------
+# Test 4: Intrinsic calibration (single or multiple ChArUCo images)
+# ----------------------------------------------
+print("\n[INFO] Running intrinsic calibration...")
 rms, calib = intrinsic_calibration(
-    image_paths=["IMG_4034.png"],   # replace with multiple images if available
+    image_paths=[IMG_PATH],  # ideally multiple images for accuracy
     pattern="charuco",
-    rows=5,
-    cols=7,
-    square=0.04,          # in meters
-    charuco_marker=0.02,  # in meters
+    rows=5, cols=7,
+    square=0.04,
+    charuco_marker=0.02,
     model="pinhole"
 )
-print("RMS error:", rms)
-print("Camera matrix:\n", calib.K)
-print("Distortion coefficients:\n", calib.dist)
 
-# --- Test 6: Pose estimation using ChArUco board ---
-img = cv2.imread("IMG_4034.png")
-print("Original image dimensions:", img.shape)
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+print(f"[RESULT] RMS error: {rms:.6f}")
+print("Camera matrix K:\n", calib.K)
+print("Distortion coefficients:\n", calib.dist.ravel())
+
+# ----------------------------------------------
+# Test 5: Pose estimation and visualization
+# ----------------------------------------------
+print("\n[INFO] Estimating ChArUco board pose...")
 found, rvec, tvec = estimate_board_pose(
     gray=gray,
     pattern="charuco",
-    rows=5,
-    cols=7,
+    rows=5, cols=7,
     square=0.04,
     K=calib.K,
     dist=calib.dist,
     charuco_marker=0.02,
     dict_name="DICT_4X4_50"
 )
-print("ChArUco board pose found:", found)
+
+print(f"[RESULT] Pose found: {found}")
 if found:
     print("Rotation vector (rvec):\n", rvec)
     print("Translation vector (tvec):\n", tvec)
 
-    # Draw axes on a copy of the real image
+    # Draw coordinate axes on the original image
     img_vis = img.copy()
-    cv2.drawFrameAxes(img_vis, calib.K, calib.dist, rvec, tvec, length=0.1)
+    cv2.drawFrameAxes(img_vis, calib.K, calib.dist, rvec, tvec, length=0.05)  # 5 cm axes
 
-    # Resize for display to fit on screen
-    max_width = 1200
+    # Resize for display
+    max_width = 1280
     scale = max_width / img_vis.shape[1]
     img_disp = cv2.resize(img_vis, (0, 0), fx=scale, fy=scale)
-
-    cv2.imshow("ChArUco Pose", img_disp)
+    cv2.imshow("ChArUco Pose Visualization", img_disp)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+else:
+    print("[WARN] Could not estimate pose — ensure enough corners were detected.")
