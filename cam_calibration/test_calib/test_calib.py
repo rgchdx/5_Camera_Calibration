@@ -30,7 +30,7 @@ cv2.imwrite("charuco_board_generated.png", img_board)
 print("ChArUco board image saved as charuco_board_generated.png")
 
 # --- Test 3: Detect ChArUco corners on real image ---
-IMG_PATH = "IMG_4043.png"
+IMG_PATH = "cam_extrinsics_test/IMG_4043.png"
 
 aruco_dict, board = make_charuco_board(
     rows=5, cols=7,
@@ -108,3 +108,49 @@ else:
     print("[WARN] Could not estimate pose — ensure enough corners were detected.")
 
 # --- Test 6: Getting extrinsics for multiple cameras ---
+data_root = "cam_extrinsics_test"
+pattern = "charuco"
+rows, cols = 5, 7
+square = 0.04
+charuco_marker = 0.02
+dict_name = "DICT_4X4_50"
+model = "pinhole"
+image_paths = sorted(
+    [os.path.join(data_root, f) for f in os.listdir(data_root)
+     if f.startswith("IMG_") and f.lower().endswith(".png")]
+)
+print(f"Found {len(image_paths)} images: {image_paths}")
+
+rms, calib = intrinsic_calibration(
+    image_paths=image_paths,
+    pattern=pattern,
+    rows=rows, cols=cols,
+    square=square,
+    charuco_marker=charuco_marker,
+    model=model,
+    dict_name=dict_name
+)
+print(f"\n--- INTRINSIC CALIBRATION ---")
+print(f"RMS reprojection error: {rms:.4f}")
+print(f"Camera matrix (K):\n{calib.K}")
+print(f"Distortion coefficients:\n{calib.dist.flatten()}")
+
+cams = ["cam0"]
+calibs = {"cam0": calib} 
+
+ref, extrinsics = extrinsics_from_shared_board(
+    data_root=data_root,
+    cams=cams,
+    pattern=pattern,
+    rows=rows, cols=cols,
+    square=square,
+    charuco_marker=charuco_marker,
+    dict_name=dict_name,
+    calibs=calibs
+)
+print("\n--- EXTRINSIC CALIBRATION RESULTS ---")
+print("Reference camera:", ref)
+for cam, T in extrinsics.items():
+    print(f"\nCamera: {cam}\nTransform (4x4):\n{T}")
+
+print("\n Done! Intrinsic + extrinsic calibration complete.")

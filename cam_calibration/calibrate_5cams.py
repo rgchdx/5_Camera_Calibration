@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple
 import numpy as np
 import cv2
+from collections import defaultdict
+
 try:
     import yaml # for YAML output
     HAVE_YAML = True
@@ -174,21 +176,28 @@ def invert_T(T):
     Ti[:3, 3:4] = -R.T @ t
     return Ti
 
-def extrinsics_from_shared_board(data_root, cams, pattern, rows, cols, square, calibs: Dict[str, cameraCalib], 
-                                 charuco_marker = None, dict_name = "DICT_4X4_50"):
+def extrinsics_from_shared_board(
+    data_root,
+    cams,
+    pattern,
+    rows,
+    cols,
+    square,
+    calibs: Dict[str, cameraCalib],
+    charuco_marker=None,
+    dict_name="DICT_4X4_50"
+):
     """
     For frames where multiple cameras see the board at (roughly) the same time,
     we estimate each cam's pose wrt the board, then compute relative transforms.
-    cam_i -> cam0 by T_i0 = t_i_board * inv(T_0_board)
+    cam_i -> cam0 by T_i0 = T_i_board * inv(T_0_board)
     """
-    from collections import defaultdict
     def se3_log(T):
-        # simple log map using cv2.Rodrigues inverse
         R = T[:3, :3]
-        t = T[:3, 3:4]  # potential issue here so check later
+        t = T[:3, 3:4]
         rvec, _ = cv2.Rodrigues(R)
-        return np.concatenate([rvec.flatten(), t])
-    
+        return np.concatenate([rvec.flatten(), t.flatten()])
+
     def se3_exp(xi):
         rvec = xi[:3].reshape(3, 1)
         t = xi[3:].reshape(3, 1)
@@ -197,56 +206,81 @@ def extrinsics_from_shared_board(data_root, cams, pattern, rows, cols, square, c
         T[:3, :3] = R
         T[:3, 3:4] = t
         return T
-    # build per-frame estimates by matching file indices across cams
-    # assumes images named like img_0001.jpg across all cams
-    frame_to_Tc_board = defaultdict(dict) 
-    # collect sorted basenames per cam
+
+    # --- initialize outputs ---
+    ref = cams[0]
+    extrinsics = {ref: np.eye(4)}
+
+    # --- collect per-camera image lists ---
     cam_files = {}
     for c in cams:
-        files = sorted(glob.glob(os.path.join(data_root, c, "*.jpg")) + 
-                       glob.glob(os.path.join(data_root, c, "*.png")))
+        # Support both:  (1) each camera has its own subfolder, or (2) all images in one folder
+        folder = os.path.join(data_root, c) if os.path.isdir(os.path.join(data_root, c)) else data_root
+        files = sorted(glob.glob(os.path.join(folder, "*.jpg")) +
+                       glob.glob(os.path.join(folder, "*.png")))
         cam_files[c] = files
-    # Match by index min length
+        print(f"[INFO] Found {len(files)} images for camera '{c}' in {folder}")
+
+    # --- ensure there are images ---
+    if any(len(v) == 0 for v in cam_files.values()):
+        print("[WARN] One or more cameras have no images. Skipping extrinsic estimation.")
+        return ref, extrinsics
+
     min_len = min(len(v) for v in cam_files.values())
+    print(f"[INFO] Using {min_len} frames per camera for synchronization")
+
+    frame_to_Tc_board = defaultdict(dict)
+
     for idx in range(min_len):
         for c in cams:
             p = cam_files[c][idx]
             img = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
             if img is None:
+                print(f"[WARN] Could not read {p}")
                 continue
+
             K = calibs[c].K
             dist = calibs[c].dist
-            found, rvec, tvec = estimate_board_pose(img, pattern, rows, cols, square, K, dist,
-                                                    charuco_marker=charuco_marker, dict_name=dict_name)
+            found, rvec, tvec = estimate_board_pose(
+                img, pattern, rows, cols, square, K, dist,
+                charuco_marker=charuco_marker, dict_name=dict_name
+            )
             if not found:
                 continue
+
             T_c_board = rvec_tvec_to_rt(rvec, tvec)
             frame_to_Tc_board[idx][c] = T_c_board
-            # Compute relative transforms to cam0 per frame, then aggregate
-            ref = cams[0]
-            rel_lists = {c: [] for c in cams if c != ref}
-            for idx, d in frame_to_Tc_board.items():
-                if ref not in d:
-                    continue
-                T_ref_board = d[ref]
-                T_board_ref = invert_T(T_ref_board)
-                for c, T_c_board in d.items():
-                    if c == ref:
-                        continue
-                    T_c_ref = T_c_board @ T_board_ref
-                    rel_lists[c].append(T_c_ref)
-            # robust average via log/exp
-            extrinsics = {}
-            for c in cams:
-                if c == ref:
-                    extrinsics[c] = np.eye(4)
-                    continue
-                Ts = rel_lists[c]
-                if len(Ts) == 0:
-                    raise RuntimeError(f"No shared board views found between {ref} and {c}.")
-                xis = np.stack([se3_log(T) for T in Ts], axis=0)
-                median_xi = np.median(xis, axis=0)
-                extrinsics[c] = se3_exp(median_xi)
+
+    if len(frame_to_Tc_board) == 0:
+        print("[ERROR] No valid board detections found across cameras.")
+        return ref, extrinsics
+
+    # --- compute relative transforms ---
+    rel_lists = {c: [] for c in cams if c != ref}
+    for idx, d in frame_to_Tc_board.items():
+        if ref not in d:
+            continue
+        T_ref_board = d[ref]
+        T_board_ref = invert_T(T_ref_board)
+        for c, T_c_board in d.items():
+            if c == ref:
+                continue
+            T_c_ref = T_c_board @ T_board_ref
+            rel_lists[c].append(T_c_ref)
+
+    # --- average the relative transforms ---
+    for c in cams:
+        if c == ref:
+            continue
+        Ts = rel_lists[c]
+        if len(Ts) == 0:
+            print(f"[WARN] No shared board views found between {ref} and {c}")
+            continue
+        xis = np.stack([se3_log(T) for T in Ts], axis=0)
+        median_xi = np.median(xis, axis=0)
+        extrinsics[c] = se3_exp(median_xi)
+
+    print(f"[INFO] Extrinsic estimation complete. Found {len(extrinsics)} camera transforms.")
     return ref, extrinsics
 
 def save_yaml_json(out_path, cams, calibs: Dict[str, cameraCalib], ref_cam: str, extrinsics: Dict[str, np.ndarray]):
