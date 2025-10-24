@@ -307,3 +307,99 @@ def save_yaml_json(out_path, cams, calibs: Dict[str, cameraCalib], ref_cam: str,
             json.dump(data, f, indent = 2)
     
     # define main here later after all testing is done.
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--data_root", type=str, required = True, 
+        help="Root folder containing per-camera subfolders or all images"
+    )
+    ap.add_argument(
+        "--cams", nargs="+", required=True,
+        help="Camera folder names, e.g., cam0 cam1 cam2 cam3 cam4"
+    )
+    ap.add_argument(
+        "--pattern", choices=["checkerboard", "charuco"], default="checkerboard",
+        help="Calibration pattern type"
+    )
+    ap.add_argument(
+        "--rows", type=int, required=True,
+        help="Checkerboard inner rows OR ChArUco rows (squares)"
+    )
+    ap.add_argument(
+        "--cols", type=int, required=True,
+        help="Checkerboard inner cols OR ChArUco cols (squares)"
+    )
+    ap.add_argument(
+        "--square", type=float, required=True,
+        help="Square size in meters"
+    )
+    ap.add_argument(
+        "--marker", type=float, default=None,
+        help="ChArUco marker size in meters (required if charuco)"
+    )
+    ap.add_argument(
+        "--dict", type=str, default="DICT_4X4_50",
+        help="ArUco dictionary name for ChArUco"
+    )
+    ap.add_argument(
+        "--model", choices=["pinhole", "fisheye"], default="pinhole",
+        help="Camera model type"
+    )
+    ap.add_argument(
+        "--output", required=True,
+        help="Output YAML/JSON file path"
+    )
+    args = ap.parse_args()
+    cams = args.cams
+    # --- 1) Intrinsic Calibration ---
+    calibs: Dict[str, cameraCalib] = {}
+    for c in cams:
+        # Gather images
+        paths = sorted(
+            glob.glob(os.path.join(args.data_root, c, "*.jpg")) +
+            glob.glob(os.path.join(args.data_root, c, "*.png"))
+        )
+        if len(paths) < 10:
+            print(f"[WARN] {c}: only {len(paths)} images found; results may be poor.")
+        print(f"[INFO] Calibrating intrinsics for {c} with {len(paths)} images...")
+        if args.pattern == "charuco" and args.marker is None:
+            raise ValueError("For ChArUco, please provide --marker (marker length in meters).")
+        rms, calib = intrinsic_calibration(
+            image_paths=paths,
+            pattern=args.pattern,
+            rows=args.rows,
+            cols=args.cols,
+            square=args.square,
+            model=args.model,
+            charuco_marker=args.marker,
+            dict_name=args.dict
+        )
+
+        print(f"[INFO] {c}: RMS reprojection error = {rms:.4f} px")
+        calibs[c] = calib
+
+    # --- 2) Extrinsic Calibration ---
+    print("[INFO] Estimating extrinsics via multi-view shared board observations...")
+    ref_cam, extrinsics = extrinsics_from_shared_board(
+        data_root=args.data_root,
+        cams=cams,
+        pattern=args.pattern,
+        rows=args.rows,
+        cols=args.cols,
+        square=args.square,
+        calibs=calibs,
+        charuco_marker=args.marker,
+        dict_name=args.dict
+    )
+    # Ensure reference camera has identity transform
+    extrinsics[ref_cam] = np.eye(4)
+
+    # --- 3) Save results ---
+    print(f"[INFO] Saving calibration results to {args.output} ...")
+    save_yaml_json(args.output, cams, calibs, ref_cam, extrinsics)
+
+    print("[DONE] Calibration completed successfully.")
+
+if __name__ == "__main__":
+    main()
