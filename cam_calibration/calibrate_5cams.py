@@ -153,7 +153,7 @@ def estimate_board_pose(gray, pattern, rows, cols, square, K, dist, charuco_mark
         found, ch_corners, ch_ids = detect_charuco(gray, aruco_dict, board)
         if not found:
             return False, None, None
-        ret, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(ch_corners, ch+ids, board, K, dist, None, None)
+        ret, rvec, tvec = cv2.aruco.estimatePoseCharucoBoard(ch_corners, ch_ids, board, K, dist, None, None)
         if not ret:
             return False, None, None
         return True, rvec, tvec
