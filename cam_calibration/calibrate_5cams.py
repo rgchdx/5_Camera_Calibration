@@ -130,13 +130,18 @@ def intrinsic_calibration(image_paths: List[str], pattern: str, rows: int, cols:
     else:  # charuco
         # ChArUco intrinsics (pinhole only, fisheye not supported directly by aruco extension)
         # Aggregate from locals
+        # ChArUco intrinsics (pinhole only)
+        if 'all_corners' not in locals() or len(all_corners) == 0:
+            print(f"[WARN] No ChArUco boards detected for this camera. Skipping calibration.")
+            return None, None
+
         rms, K, dist, rvecs, tvecs = cv2.aruco.calibrateCameraCharuco(
-        charucoCorners = all_corners,
-        charucoIds = all_ids,
-        board = board,
-        imageSize = im_size,
-        cameraMatrix = None,
-        distCoeffs = None
+            charucoCorners=all_corners,
+            charucoIds=all_ids,
+            board=board,
+            imageSize=im_size,
+            cameraMatrix=None,
+            distCoeffs=None
         )
         if model == "fisheye":
             raise ValueError("Fisheye model not supported for ChArUco calibration in this implementation.")
@@ -376,8 +381,12 @@ def main():
             dict_name=args.dict
         )
 
+        # Skip if no calibration result
+        if rms is None or calib is None:
+            print(f"[WARN] {c}: Calibration skipped (no valid ChArUco detections).")
+            continue
+
         print(f"[INFO] {c}: RMS reprojection error = {rms:.4f} px")
-        calibs[c] = calib
 
     # --- 2) Extrinsic Calibration ---
     print("[INFO] Estimating extrinsics via multi-view shared board observations...")
