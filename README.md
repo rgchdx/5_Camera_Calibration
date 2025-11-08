@@ -49,6 +49,16 @@ cam_calibration/
 
 └── README.md
 
+### 1. Pull the repository
+``` bash
+git clone <repo_url>
+cd cam_calibration
+```
+### 2. Install Python dependencies
+``` pip install opencv-python opencv-contrib-python numpy pyyaml ```
+
+## Usage
+
 
 
 
