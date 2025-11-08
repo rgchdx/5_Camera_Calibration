@@ -11,8 +11,7 @@ This repository is a part of the honors project, “Integrating Artificial Intel
 - ✅ Outputs results in **YAML/JSON** for seamless integration into AR, robotics, and reconstruction pipelines  
 
 ## Folder Structure
-cam_calibration/
-
+cam_calibration
 │
 
 ├── test_calib/
@@ -48,6 +47,7 @@ cam_calibration/
 │
 
 └── README.md
+
 
 
 
