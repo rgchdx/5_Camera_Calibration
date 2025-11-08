@@ -22,19 +22,34 @@ cam_calibration/
 │   │   ├── IMG_4036.png
 
 │   │   ├── IMG_4037.png
+
 │   │   ├── IMG_4038.png
+
 │   │   ├── IMG_4042.png
+
 │   │   ├── IMG_4043.png
+
 │   │   ├── charuco_board_generated.png
+
 │   │   ├── checkerboard.png
+
 │   │   ├── choriginal.jpg
+
 │   │   ├── test_calib.py
+
 │   │   └── calibrate_5cams.py   ← main script
+
 │
+
 ├── configs/
+
 │   └── sample_calibration_config.yaml
+
 │
+
 └── README.md
+
+
 
 
 
