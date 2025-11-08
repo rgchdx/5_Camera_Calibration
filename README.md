@@ -10,4 +10,24 @@ This repository is a part of the honors project, “Integrating Artificial Intel
 - ✅ Computes **full multi-view extrinsic calibration** relative to a reference camera (`cam0`)  
 - ✅ Outputs results in **YAML/JSON** for seamless integration into AR, robotics, and reconstruction pipelines  
 
+## Folder Structure
+cam_calibration/
+│
+├── test_calib/
+│   ├── cam_extrinsics_test/
+│   │   ├── IMG_4036.png
+│   │   ├── IMG_4037.png
+│   │   ├── IMG_4038.png
+│   │   ├── IMG_4042.png
+│   │   ├── IMG_4043.png
+│   │   ├── charuco_board_generated.png
+│   │   ├── checkerboard.png
+│   │   ├── choriginal.jpg
+│   │   ├── test_calib.py
+│   │   └── calibrate_5cams.py   ← main script
+│
+├── configs/
+│   └── sample_calibration_config.yaml
+│
+└── README.md
 
