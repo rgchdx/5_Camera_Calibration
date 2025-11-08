@@ -12,6 +12,7 @@ This repository is a part of the honors project, “Integrating Artificial Intel
 
 ## Folder Structure
 cam_calibration/
+
 │
 ├── test_calib/
 │   ├── cam_extrinsics_test/
@@ -30,4 +31,5 @@ cam_calibration/
 │   └── sample_calibration_config.yaml
 │
 └── README.md
+
 
