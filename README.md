@@ -11,14 +11,15 @@ This repository is a part of the honors project, “Integrating Artificial Intel
 - ✅ Outputs results in **YAML/JSON** for seamless integration into AR, robotics, and reconstruction pipelines  
 
 ## Folder Structure
-cam_calibration
+cam_calibration/
+
 │
 
 ├── test_calib/
 
 │   ├── cam_extrinsics_test/
 
-│   │   ├── IMG_4036.png
+│   │   ├── IMG_4036.png   ← for testing
 
 │   │   ├── IMG_4037.png
 
@@ -28,13 +29,13 @@ cam_calibration
 
 │   │   ├── IMG_4043.png
 
-│   │   ├── charuco_board_generated.png
+│   │   ├── charuco_board_generated.png   ← generated from code
 
-│   │   ├── checkerboard.png
+│   │   ├── checkerboard.png   ← generated from code
 
 │   │   ├── choriginal.jpg
 
-│   │   ├── test_calib.py
+│   │   ├── test_calib.py   ← for testing the script)
 
 │   │   └── calibrate_5cams.py   ← main script
 
@@ -42,11 +43,12 @@ cam_calibration
 
 ├── configs/
 
-│   └── sample_calibration_config.yaml
+│   └── sample_calibration_config.yaml  ← Output containing necessary parameters
 
 │
 
 └── README.md
+
 
 
 
