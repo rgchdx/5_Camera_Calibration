@@ -14,9 +14,13 @@ This repository is a part of the honors project, “Integrating Artificial Intel
 cam_calibration/
 
 │
+
 ├── test_calib/
+
 │   ├── cam_extrinsics_test/
+
 │   │   ├── IMG_4036.png
+
 │   │   ├── IMG_4037.png
 │   │   ├── IMG_4038.png
 │   │   ├── IMG_4042.png
@@ -31,5 +35,6 @@ cam_calibration/
 │   └── sample_calibration_config.yaml
 │
 └── README.md
+
 
 
