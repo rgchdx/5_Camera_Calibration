@@ -80,7 +80,33 @@ Run the main calibration script:
 
 ``` --output ``` Output YAML/JSON file path
 
+## Output
+The script saves a YAML/JSON file containing:
 
+- Intrinsic matrix (```K```) and distortion coefficients (```dict```) for each camera
+- Resolution and camera model
+- Extrinsic transformation matrices relative to the reference camera
+
+Example YAML snippet:
+```
+reference_camera: cam0
+cameras:
+  cam0:
+    model: pinhole
+    resolution:
+      width: 1920
+      height: 1080
+    K:
+      - [1200.0, 0.0, 960.0]
+      - [0.0, 1200.0, 540.0]
+      - [0.0, 0.0, 1.0]
+    dist: [0.01, -0.02, 0.0, 0.0, 0.0]
+    T_cam_ref: [[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]]
+```
+## Notes
+- ChArUco calibration supports pinhole cameras only; fisheye for ChArUco is not supported in this implementation.
+- Ensure sufficient images per camera (more than 10 are recommended) for reliable calibration
+- For multi-view extrinsics, the script assumes multiple cameras observe the same board at approximately the same time.
 
 
 
