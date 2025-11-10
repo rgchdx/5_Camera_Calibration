@@ -58,6 +58,17 @@ cd cam_calibration
 ``` pip install opencv-python opencv-contrib-python numpy pyyaml ```
 
 ## Usage
+Run the main calibration script:
+``` --data_root ``` Root folder containing images or per-camera subfolders
+``` --cams ``` List of camera folder names
+``` --pattern ``` Calibration target type: ``` checkerboard ``` or ``` charuco ```
+``` --rows ``` Checkerboard inner rows or ChArUco rows (squares)
+``` --cols ``` Checkerboard inner cols or ChArUco cols (squares)
+``` --square ``` Square size in meters
+``` --marker ``` ChArUco marker size in meters (required for ChArUco)
+``` --dict ``` ArUco dictionary name (default: ``` DICT_4X4_50 ```
+``` --model ``` Camera model: ``` pinhole ``` or ``` fisheye ```
+``` --output ``` Output YAML/JSON file path
 
 
 
